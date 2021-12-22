@@ -1,0 +1,6 @@
+[workspace]
+
+projects = {
+  "./libs/*"
+  "./exes/*"
+}

@@ -1,7 +1,11 @@
+// clippy configuration
+#![warn(clippy::pedantic, clippy::all)]
+#![allow(clippy::must_use_candidate)]
+
 pub mod builder;
 
 /// The basic value of any variable in the calculator, a natively sized signed integer
-/// You could easily expand this to be a BigInt (arbitrarily sized), or have the IR be able to represent mulitple types,
+/// You could easily expand this to be an arbitrarily sized integer, or have the IR be able to represent mulitple types,
 /// but that might add some complexity
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Number(isize);
@@ -11,8 +15,7 @@ pub struct Number(isize);
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Register(usize);
 
-/// A BlockLabel represents a "pointer" to a Block
-/// Any BlockLabel should only point to one block
+/// represents a "pointer" to a `Block`, which is stored in a `Program`
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BlockId(usize);
 
@@ -24,7 +27,7 @@ pub enum Instruction {
     // block navigation commands
     // call a block with the provided arguments
     Call {
-        block: BlockId,
+        name: String,
         arguments: Vec<Register>,
         // the register to store the return value in
         // this is an inefficient return scheme, architect a better one later?
@@ -37,6 +40,8 @@ pub enum Instruction {
     // Errors if the amount of requested and provided arguments are inequal
     LoadArgs(Vec<Register>),
 
+    // jump to a block unconditionally
+    Jump(BlockId),
     // Commands to jump conditionally
     // I might add more later if necesarry
     JEqual {

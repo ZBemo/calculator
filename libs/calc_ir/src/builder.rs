@@ -1,38 +1,38 @@
+pub mod instructions;
+
 use crate::{BlockId, Instruction, Register};
+use std::collections::HashMap;
 
 /// A "block" of code, useful for loops, if commands, etc
 pub type Block = Vec<Instruction>;
-/// a collection of Blocks, build by a `Builder`
-pub type Program = Vec<Block>;
 
-pub mod instructions {
-    use crate::Register;
-    /// An instruction that performs mathematical operations on two `super::Number`s
-    pub enum Arithmetic {
-        Add,
-        Subtract,
-        Multiply,
-        Divide,
-        Mod,
+///TODO:  this probably doesn't belong in builder, move to lib.rs
+/// a collection of Blocks and functions, built by a `Builder`
+pub struct Program {
+    blocks: Vec<Block>,
+    functions: HashMap<String, BlockId>,
+}
+
+impl Program {
+    fn new() -> Self {
+        Self {
+            blocks: Vec::new(),
+            functions: HashMap::new(),
+        }
+    }
+    //TODO: this should be pub?
+    /// a function used by the Builder to register a function in the IR
+    fn register_function(&mut self, block: BlockId, name: String) {
+        self.functions.insert(name, block);
     }
 
-    pub enum BitWise {
-        Or,
-        NotOr,
-        And,
-        ShiftLeft,
-        ShiftRight,
-    }
-
-    pub enum Jump {
-        Unconditional,
-        Equal(Register, Register),
-        NotEqual(Register, Register),
-        NoneZero(Register),
-        Zero(Register),
+    pub fn lookup_function(&self, name: &str) -> Option<BlockId> {
+        self.functions.get(name).map(Clone::clone) // BlockIds are trivially cloneable so just clone it to remove the reference
     }
 }
+
 /// A struct that allows you to build a `Block` inside of the context of a `Builder`
+#[allow(clippy::module_name_repetitions)] // this is the only name I can think of that doesn't conflict
 pub struct BlockBuilder<'a> {
     /// The instructions within the block, to be executed in sequential order
     instructions: Block,
@@ -132,6 +132,18 @@ impl<'a> BlockBuilder<'a> {
 
         out_reg
     }
+
+    pub fn add_fn_call(&mut self, name: String, arguments: Vec<Register>) -> Register {
+        let out_reg = self.builder.allocate_register();
+
+        self.instructions.push(Instruction::Call {
+            name,
+            arguments,
+            out: out_reg,
+        });
+
+        out_reg
+    }
 }
 
 /// A struct to easily build a program, to add Blocks call `build_block` and use the returned `BlockBuilder`
@@ -141,22 +153,39 @@ pub struct Builder {
 }
 
 impl Builder {
+    /// recreate a builder from a program, as well as the `previous_used_registers` which you can obtain by calling `used_registers` before finalize
+    pub fn from_program(program: Program, previous_used_registers: usize) -> Self {
+        Self {
+            used_registers: previous_used_registers,
+            program,
+        }
+    }
+
+    /// This should be called before finalize() if you plan to re-build a Builder from the returned program at a later state in time
+    pub fn used_registers(&self) -> usize {
+        self.used_registers
+    }
+
+    pub fn register_function(&mut self, block: BlockId, name: String) {
+        self.program.register_function(block, name);
+    }
+
     /// Finalize the program and get a collection of `Block`s back, which you can then pass to an interpreter
     pub fn finalize(self) -> Program {
-        return self.program;
+        self.program
     }
 
     pub fn new() -> Self {
         Self {
             used_registers: 0,
-            program: Vec::new(),
+            program: Program::new(),
         }
     }
 
-    /// for use with BlockBuilder; adds the block to a list of blocks in the program and returns an identifier unique to that block
+    /// for use from `BlockBuilder`. adds the block to a list of blocks in the program and returns an identifier unique to that block
     pub(super) fn add_block(&mut self, block: Block) -> BlockId {
-        let id = self.program.len(); // the index of the block that we're pushing to the program is the same as the amount of blocks in the program before we add it
-        self.program.push(block);
+        let id = self.program.blocks.len(); // the index of the block that we're pushing to the program is the same as the amount of blocks in the program before we add it
+        self.program.blocks.push(block);
         BlockId(id)
     }
 

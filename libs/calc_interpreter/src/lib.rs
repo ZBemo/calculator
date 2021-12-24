@@ -11,8 +11,8 @@ type State = Vec<Number>;
 #[cfg(test)]
 mod test;
 
-/// interprets a block, returning Some(Number) if Instruction::Ret is called,
-/// otherwise returns None if end of block is reached with no Return (this is malformed IR)
+/// interprets a block, returning Some(Number) if [`calc_ir::Instruction::Ret`] is called,
+/// otherwise returns None if end of block is reached with no return
 fn interpret_block(block: BlockId, program: &Program, state: State) -> Option<Number> {
     todo!()
 }

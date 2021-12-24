@@ -14,7 +14,8 @@ pub struct Program {
 }
 
 impl Program {
-    pub(super) fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             blocks: Vec::new(),
             functions: HashMap::new(),

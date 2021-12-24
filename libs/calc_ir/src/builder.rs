@@ -25,6 +25,7 @@ impl<'a> BlockBuilder<'a> {
     }
 
     /// Finalize the Block and register it with the builder, returning an Identifier to that block
+    #[must_use]
     pub fn finalize(self) -> BlockId {
         self.builder.add_block(self.instructions)
     }
@@ -169,6 +170,7 @@ pub struct Builder {
 
 impl Builder {
     /// recreate a builder from a program, allowing you to (only) add functions to it
+    #[must_use]
     pub fn from_program(program: Program) -> Self {
         Self { program }
     }
@@ -178,6 +180,7 @@ impl Builder {
     }
 
     /// Finalize the program and get a collection of [`Block`]s back, which you can then pass to an interpreter
+    #[must_use]
     pub fn finalize(self) -> Program {
         self.program
     }

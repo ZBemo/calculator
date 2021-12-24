@@ -10,7 +10,7 @@ pub enum Arithmetic {
     Divide,
     Mod,
 }
-/// An instruction that performs a BitWise operation on two `crate::Number`s
+/// An instruction that performs a bitwise operation on two `crate::Number`s
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BitWise {
     Or,

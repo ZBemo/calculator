@@ -99,10 +99,6 @@ pub fn interpret_function(
             }
 
             Instruction::Invalid => panic!("Invalid instruction in function {}", function),
-
-            // leave this here just in case
-            #[allow(unreachable_patterns)]
-            _ => todo!("unimplemented instruction"),
         };
     }
 

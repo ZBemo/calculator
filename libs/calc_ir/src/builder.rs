@@ -37,7 +37,7 @@ impl<'a> BlockBuilder<'a> {
     }
 
     /// Loads the amount of arguments specified in argc into registers, and returns a vector of registers where the first argument
-    /// will be loaded into [0], the second into [1], etc
+    /// will be loaded into \[0\], the second into \[1\], etc
     pub fn add_loadargs(&mut self, argc: usize) -> Vec<Register> {
         let mut ret = Vec::new();
         for _ in 0..argc {

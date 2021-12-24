@@ -45,6 +45,16 @@ fn two_functions() {
 
     builder.register_function(block_id, CALED_FN_NAME.to_string());
 
-    let snd_block_builder = builder.build_block();
+    let mut snd_block_builder = builder.build_block();
+
+    // load the one argument to the function into a register
+    let args = snd_block_builder.add_loadargs(1);
+    // load 1 into a register
+    let one = snd_block_builder.add_immediate(1);
+
+    let arg_minus_one = snd_block_builder.add_arithmetic(Arithmetic::Subtract, args[0], one);
+
+    snd_block_builder.add_ret(arg_minus_one);
+
     //TODO: call that and  subtract one from its return, should evaluate to 2
 }

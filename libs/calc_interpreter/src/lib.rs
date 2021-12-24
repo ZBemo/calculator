@@ -4,10 +4,18 @@
 
 use std::ops::Deref;
 
-use calc_ir::{Number, Program};
+use calc_ir::{BlockId, Number, Program};
+
+type State = Vec<Number>;
 
 #[cfg(test)]
 mod test;
+
+/// interprets a block, returning Some(Number) if Instruction::Ret is called,
+/// otherwise returns None if end of block is reached with no Return (this is malformed IR)
+fn interpret_block(block: BlockId, program: &Program, state: State) -> Option<Number> {
+    todo!()
+}
 
 /// interprets a function that's been registered to `program` with the name `function`, passing in the arguments in `arguments` and returns its result,
 /// as returned by [`calc_ir::Instruction::Ret`]
@@ -19,7 +27,7 @@ pub fn interpret_function(
     program: &Program,
     arguments: &[Number],
 ) -> Result<Number, ()> {
-    let mut registers: Vec<Number> = Vec::new();
+    let mut registers: State = Vec::new();
     let to_interpret = {
         match program.lookup_function(&*function) {
             Some(function_block) => program.get_block(function_block),
@@ -38,6 +46,8 @@ pub fn interpret_function(
                 arguments,
                 out,
             } => {
+                // rust complains if we try to use * on the call change, probably because of wacky precidence
+                #[allow(clippy::explicit_deref_methods)]
                 let result = interpret_function(
                     name,
                     program,

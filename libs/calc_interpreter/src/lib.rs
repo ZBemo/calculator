@@ -22,7 +22,7 @@ pub fn interpret_function(
         use calc_ir::Instruction;
         match instruction {
             Instruction::LoadImmediate(value, register) => {
-                registers[register.0] = *value;
+                registers.insert(register.0, *value);
             }
             Instruction::Call {
                 name,
@@ -67,35 +67,35 @@ pub fn interpret_function(
             }
 
             Instruction::Add { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] + registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] + registers[rhs.0]);
             }
             Instruction::Subtract { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] - registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] - registers[rhs.0]);
             }
             Instruction::Multiply { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] * registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] * registers[rhs.0]);
             }
             Instruction::Divide { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] / registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] / registers[rhs.0]);
             }
             Instruction::Modulo { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] % registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] % registers[rhs.0]);
             }
 
             Instruction::BitOr { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] | registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] | registers[rhs.0]);
             }
             Instruction::BitNotOr { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] ^ registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] ^ registers[rhs.0]);
             }
             Instruction::BitAnd { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] & registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] & registers[rhs.0]);
             }
             Instruction::ShiftL { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] << registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] << registers[rhs.0]);
             }
             Instruction::ShiftR { lhs, rhs, out } => {
-                registers[out.0] = registers[lhs.0] >> registers[rhs.0];
+                registers.insert(out.0, registers[lhs.0] >> registers[rhs.0]);
             }
 
             Instruction::Invalid => panic!("Invalid instruction in function {}", function),

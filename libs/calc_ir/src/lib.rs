@@ -2,7 +2,9 @@
 #![warn(clippy::pedantic, clippy::all, clippy::perf)]
 
 pub mod builder;
-pub use builder::{Block, Builder, Program};
+pub mod program;
+pub use builder::Builder;
+pub use program::{Block, Program};
 
 /// The basic value of any variable in the calculator, a natively sized signed integer
 /// You could easily expand this to be an arbitrarily sized integer, or have the IR be able to represent mulitple types,

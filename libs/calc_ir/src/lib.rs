@@ -1,19 +1,21 @@
 // clippy configuration
-#![warn(clippy::pedantic, clippy::all)]
-#![allow(clippy::must_use_candidate)]
+#![warn(clippy::pedantic, clippy::all, clippy::perf)]
 
 pub mod builder;
+pub use builder::{Block, Builder, Program};
 
 /// The basic value of any variable in the calculator, a natively sized signed integer
 /// You could easily expand this to be an arbitrarily sized integer, or have the IR be able to represent mulitple types,
 /// but that might add some complexity
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct Number(isize);
+///
+/// This isn't a newtype because newtypes are ANNOYING AS HELL when you want them to just have the exact same semantics as the underlying type.
+/// in a real IR you'd want the contents of registers to be newtypes with their own IR specific semantics, but that's unnecassary to implement a simple calculator.
+pub type Number = isize;
 
 /// SAFETY: any register should only be assigned to once
 /// A register represents a "pointer" to a Number, Registers should be assigned to once
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct Register(usize);
+pub struct Register(pub usize);
 
 /// represents a "pointer" to a `Block`, which is stored in a `Program`
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -54,7 +56,7 @@ pub enum Instruction {
         rhs: Register,
         to: BlockId,
     },
-    JNoneZero {
+    JNonZero {
         check: Register,
         to: BlockId,
     },
@@ -116,4 +118,6 @@ pub enum Instruction {
         rhs: Register,
         out: Register,
     },
+
+    Invalid,
 }

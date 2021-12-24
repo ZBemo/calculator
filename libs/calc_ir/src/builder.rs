@@ -29,6 +29,10 @@ impl Program {
     pub fn lookup_function(&self, name: &str) -> Option<BlockId> {
         self.functions.get(name).map(Clone::clone) // BlockIds are trivially cloneable so just clone it to remove the reference
     }
+
+    pub fn get_block(&self, block: BlockId) -> &Block {
+        &self.blocks[block.0]
+    }
 }
 
 /// A struct that allows you to build a `Block` inside of the context of a `Builder`
@@ -44,6 +48,19 @@ impl<'a> BlockBuilder<'a> {
     /// Finalize the Block and register it with the builder, returning an Identifier to that block
     pub fn finalize(self) -> BlockId {
         self.builder.add_block(self.instructions)
+    }
+
+    pub fn add_immediate(&mut self, imm: super::Number) -> Register {
+        let immediate_reg = self.builder.allocate_register();
+
+        self.instructions
+            .push(Instruction::LoadImmediate(imm, immediate_reg));
+
+        immediate_reg
+    }
+
+    pub fn add_ret(&mut self, reg: Register) {
+        self.instructions.push(Instruction::Ret(reg));
     }
 
     /// Adds an Arithmetic operation, and returns the register that it will store its result in

@@ -1,7 +1,7 @@
 //! the instruction options for BlockBuilder.add_* functions
-
 use crate::Register;
-/// An instruction that performs mathematical operations on two `super::Number`s
+
+/// An instruction that performs mathematical operations on two `crate::Number`s
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Arithmetic {
     Add,
@@ -10,7 +10,7 @@ pub enum Arithmetic {
     Divide,
     Mod,
 }
-
+/// An instruction that performs a BitWise operation on two `crate::Number`s
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BitWise {
     Or,

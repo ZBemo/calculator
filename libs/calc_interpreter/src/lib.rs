@@ -17,7 +17,7 @@ mod test;
 pub fn interpret_function(
     function: &str,
     program: &Program,
-    arguments: Vec<Number>,
+    arguments: &[Number],
 ) -> Result<Number, ()> {
     let mut registers: Vec<Number> = Vec::new();
     let to_interpret = {
@@ -41,7 +41,11 @@ pub fn interpret_function(
                 let result = interpret_function(
                     name,
                     program,
-                    arguments.iter().map(|r| registers[r.0]).collect(),
+                    arguments
+                        .iter()
+                        .map(|r| registers[r.0])
+                        .collect::<Vec<_>>()
+                        .deref(),
                 )?;
                 registers[out.0] = result;
             }

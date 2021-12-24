@@ -23,7 +23,7 @@ fn basic_add() {
 
     let program = builder.finalize();
 
-    let result = crate::interpret_function(MAIN_FN_NAME, &program, Vec::new());
+    let result = crate::interpret_function(MAIN_FN_NAME, &program, &[]);
 
     assert_eq!(result, Ok(3));
 }

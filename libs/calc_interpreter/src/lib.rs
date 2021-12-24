@@ -13,27 +13,15 @@ mod test;
 
 /// interprets a block, returning Some(Number) if [`calc_ir::Instruction::Ret`] is called,
 /// otherwise returns None if end of block is reached with no return
-fn interpret_block(block: BlockId, program: &Program, state: State) -> Option<Number> {
-    todo!()
-}
-
-/// interprets a function that's been registered to `program` with the name `function`, passing in the arguments in `arguments` and returns its result,
-/// as returned by [`calc_ir::Instruction::Ret`]
-///
-/// # Errors
-/// The function can fail in various ways, such as if it's told to interpret a function that doesn't exist
-pub fn interpret_function(
-    function: &str,
+fn interpret_block(
+    block: BlockId,
     program: &Program,
-    arguments: &[Number],
-) -> Result<Number, ()> {
-    let mut registers: State = Vec::new();
-    let to_interpret = {
-        match program.lookup_function(&*function) {
-            Some(function_block) => program.get_block(function_block),
-            None => return Err(()),
-        }
-    };
+    state: &mut State,
+    arguments: Option<&[Number]>,
+) -> Option<Number> {
+    // yeah this is bad code idcidc
+    let mut registers = state;
+    let to_interpret = program.get_block(block);
 
     for instruction in to_interpret {
         use calc_ir::Instruction;
@@ -56,22 +44,24 @@ pub fn interpret_function(
                         .map(|r| registers[r.0])
                         .collect::<Vec<_>>()
                         .deref(),
-                )?;
-                registers[out.0] = result;
+                );
+                registers[out.0] = result.unwrap();
             }
-            Instruction::Ret(register) => return Ok(registers[register.0]),
-            Instruction::LoadArgs(load_into) => {
-                // load arguments[i] into corresponding register r
-                let _ = load_into
-                    .iter()
-                    .zip(0..)
-                    .map(|(r, i)| registers[r.0] = arguments[i]);
-            }
+            Instruction::Ret(register) => return Some(registers[register.0]),
+            Instruction::LoadArgs(load_into) => match arguments {
+                Some(arguments) => {
+                    let _ = load_into
+                        .iter()
+                        .zip(0..)
+                        .map(|(r, i)| registers[r.0] = arguments[i]);
+                }
+                None => panic!("attempting to load arguments outside of a function call!"),
+            },
 
             // TODO: figure out how to handle jumps
             // we should probably refactor 'interpret_function' into interpret_function and interpret_block
             Instruction::Jump(to) => {
-                todo!("Implementing jumps!");
+                interpret_block(*to, program, &mut registers, arguments);
             }
             Instruction::JEqual { lhs, rhs, to } => {
                 todo!("Implementing jumps!");
@@ -118,9 +108,34 @@ pub fn interpret_function(
                 registers.insert(out.0, registers[lhs.0] >> registers[rhs.0]);
             }
 
-            Instruction::Invalid => panic!("Invalid instruction in function {}", function),
+            Instruction::Invalid => panic!("Invalid instruction in block {:?}", block),
         };
     }
 
-    todo!()
+    // end of block with no ret or jump
+    None
+}
+
+/// interprets a function that's been registered to `program` with the name `function`, passing in the arguments in `arguments` and returns its result,
+/// as returned by [`calc_ir::Instruction::Ret`]
+///
+/// # Errors
+/// The function can fail in various ways, such as if it's told to interpret a function that doesn't exist
+pub fn interpret_function(
+    function: &str,
+    program: &Program,
+    arguments: &[Number],
+) -> Result<Number, ()> {
+    let mut registers: State = Vec::new();
+    let to_interpret = {
+        match program.lookup_function(&*function) {
+            Some(function_block) => function_block,
+            None => return Err(()),
+        }
+    };
+
+    match interpret_block(to_interpret, program, &mut registers, Some(arguments)) {
+        Some(num) => Ok(num),
+        None => Err(()),
+    }
 }

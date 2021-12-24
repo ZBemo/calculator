@@ -7,7 +7,7 @@ use std::collections::HashMap;
 pub type Block = Vec<Instruction>;
 
 ///TODO:  this probably doesn't belong in builder, move to lib.rs
-/// a collection of Blocks and functions, built by a `Builder`
+/// a collection of Blocks and functions, built by a [`super::Builder`]
 pub struct Program {
     pub(super) blocks: Vec<Block>,
     pub(super) functions: HashMap<String, BlockId>,

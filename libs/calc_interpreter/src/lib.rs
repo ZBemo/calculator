@@ -1,14 +1,19 @@
 #![warn(clippy::pedantic, clippy::all, clippy::perf)]
 
-//! A basic interpreter for programs built by 'calc_ir'
+//! A basic interpreter for programs built by [`calc_ir`]
+
+use std::ops::Deref;
 
 use calc_ir::{Number, Program};
 
 #[cfg(test)]
 mod test;
 
-/// interprets a function that's been registered to 'program' with the name 'function', passing in the arguments in 'arguments' and returns its result,
-/// as returned by Instruction::Ret
+/// interprets a function that's been registered to `program` with the name `function`, passing in the arguments in `arguments` and returns its result,
+/// as returned by [`calc_ir::Instruction::Ret`]
+///
+/// # Errors
+/// The function can fail in various ways, such as if it's told to interpret a function that doesn't exist
 pub fn interpret_function(
     function: &str,
     program: &Program,
@@ -58,9 +63,6 @@ pub fn interpret_function(
                 todo!("Implementing jumps!");
             }
             Instruction::JNotEqual { lhs, rhs, to } => {
-                todo!("Implementing jumps!");
-            }
-            Instruction::JEqual { lhs, rhs, to } => {
                 todo!("Implementing jumps!");
             }
             Instruction::JNonZero { check, to } => {

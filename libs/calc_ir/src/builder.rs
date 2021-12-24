@@ -2,7 +2,7 @@ pub mod instructions;
 
 use crate::{Block, BlockId, Instruction, Program, Register};
 
-/// A struct that allows you to build a `Block` inside of the context of a `Builder`
+/// A struct that allows you to build a [`Block`] inside of the context of a [`Builder`]
 #[allow(clippy::module_name_repetitions)] // this is the only name I can think of that doesn't conflict
 pub struct BlockBuilder<'a> {
     /// The instructions within the block, to be executed in sequential order
@@ -130,14 +130,14 @@ impl<'a> BlockBuilder<'a> {
     }
 }
 
-/// A struct to easily build a program, to add Blocks call `build_block` and use the returned `BlockBuilder`
+/// A struct to easily build a program, to add Blocks call [`Builder::build_block`] and use the returned [`BlockBuilder`]
 pub struct Builder {
     used_registers: usize,
     program: Program,
 }
 
 impl Builder {
-    /// recreate a builder from a program, as well as the `previous_used_registers` which you can obtain by calling `used_registers` before finalize
+    /// recreate a builder from a program, as well as the used_registers which you can obtain by calling [`Builder::used_registers`] before finalize
     pub fn from_program(program: Program, previous_used_registers: usize) -> Self {
         Self {
             used_registers: previous_used_registers,
@@ -154,7 +154,7 @@ impl Builder {
         self.program.register_function(block, name);
     }
 
-    /// Finalize the program and get a collection of `Block`s back, which you can then pass to an interpreter
+    /// Finalize the program and get a collection of [`Block`]s back, which you can then pass to an interpreter
     pub fn finalize(self) -> Program {
         self.program
     }
@@ -166,7 +166,7 @@ impl Builder {
         }
     }
 
-    /// for use from `BlockBuilder`. adds the block to a list of blocks in the program and returns an identifier unique to that block
+    /// for use from [`BlockBuilder`]. adds the block to a list of blocks in the program and returns an identifier unique to that block
     pub(super) fn add_block(&mut self, block: Block) -> BlockId {
         let id = self.program.blocks.len(); // the index of the block that we're pushing to the program is the same as the amount of blocks in the program before we add it
         self.program.blocks.push(block);

@@ -19,7 +19,7 @@ pub type Number = isize;
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Register(pub usize);
 
-/// represents a "pointer" to a `Block`, which is stored in a `Program`
+/// represents a "pointer" to a [`Block`], which is stored in a [`Program`]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BlockId(usize);
 

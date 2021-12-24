@@ -1,3 +1,4 @@
+//TODO: IMPORTANT:  move register allocation into BlockBuilder, registers shouldn't be constant thoughout a program!
 pub mod instructions;
 
 use crate::{Block, BlockId, Instruction, Program, Register};
@@ -9,16 +10,47 @@ pub struct BlockBuilder<'a> {
     instructions: Block,
     /// The builder that the BlockBuilder is tied to
     builder: &'a mut Builder,
+
+    used_registers: usize,
 }
 
 impl<'a> BlockBuilder<'a> {
+    /// Allocates a register and returns a "pointer" to it, in reality it's just an add and return, as the interpreter is responsible for allocating actual
+    /// registers
+    #[must_use = "if you're allocating a register, you probably want to do something with it"]
+    fn allocate_register(&mut self) -> Register {
+        let ret = self.used_registers;
+        self.used_registers += 1;
+        Register(ret)
+    }
+
     /// Finalize the Block and register it with the builder, returning an Identifier to that block
     pub fn finalize(self) -> BlockId {
         self.builder.add_block(self.instructions)
     }
 
+    /// Finalizes  self and registers the given blockId as a function with name `fn_name`
+    pub fn finalize_as_fn(self, fn_name: String) {
+        let id = self.builder.add_block(self.instructions);
+
+        self.builder.register_function(id, fn_name);
+    }
+
+    /// Loads the amount of arguments specified in argc into registers, and returns a vector of registers where the first argument
+    /// will be loaded into [0], the second into [1], etc
+    pub fn add_loadargs(&mut self, argc: usize) -> Vec<Register> {
+        let mut ret = Vec::new();
+        for _ in 0..argc {
+            ret.push(self.allocate_register());
+        }
+
+        self.instructions.push(Instruction::LoadArgs(ret.clone()));
+
+        ret
+    }
+
     pub fn add_immediate(&mut self, imm: super::Number) -> Register {
-        let immediate_reg = self.builder.allocate_register();
+        let immediate_reg = self.allocate_register();
 
         self.instructions
             .push(Instruction::LoadImmediate(imm, immediate_reg));
@@ -37,7 +69,7 @@ impl<'a> BlockBuilder<'a> {
         lhs: Register,
         rhs: Register,
     ) -> Register {
-        let out_reg = self.builder.allocate_register();
+        let out_reg = self.allocate_register();
         match operation {
             instructions::Arithmetic::Add => {
                 self.instructions.push(Instruction::Add {
@@ -84,7 +116,7 @@ impl<'a> BlockBuilder<'a> {
         lhs: Register,
         rhs: Register,
     ) -> Register {
-        let out_reg = self.builder.allocate_register();
+        let out_reg = self.allocate_register();
         match operation {
             instructions::BitWise::Or => self.instructions.push(Instruction::BitOr {
                 lhs,
@@ -118,7 +150,7 @@ impl<'a> BlockBuilder<'a> {
     }
 
     pub fn add_fn_call(&mut self, name: String, arguments: Vec<Register>) -> Register {
-        let out_reg = self.builder.allocate_register();
+        let out_reg = self.allocate_register();
 
         self.instructions.push(Instruction::Call {
             name,
@@ -132,22 +164,13 @@ impl<'a> BlockBuilder<'a> {
 
 /// A struct to easily build a program, to add Blocks call [`Builder::build_block`] and use the returned [`BlockBuilder`]
 pub struct Builder {
-    used_registers: usize,
     program: Program,
 }
 
 impl Builder {
-    /// recreate a builder from a program, as well as the used_registers which you can obtain by calling [`Builder::used_registers`] before finalize
-    pub fn from_program(program: Program, previous_used_registers: usize) -> Self {
-        Self {
-            used_registers: previous_used_registers,
-            program,
-        }
-    }
-
-    /// This should be called before finalize() if you plan to re-build a Builder from the returned program at a later state in time
-    pub fn used_registers(&self) -> usize {
-        self.used_registers
+    /// recreate a builder from a program, allowing you to (only) add functions to it
+    pub fn from_program(program: Program) -> Self {
+        Self { program }
     }
 
     pub fn register_function(&mut self, block: BlockId, name: String) {
@@ -161,7 +184,6 @@ impl Builder {
 
     pub fn new() -> Self {
         Self {
-            used_registers: 0,
             program: Program::new(),
         }
     }
@@ -173,20 +195,12 @@ impl Builder {
         BlockId(id)
     }
 
-    /// Allocates a register and returns a "pointer" to it, in reality it's just an add and return, as the interpreter is responsible for allocating actual
-    /// registers
-    #[must_use = "if you're allocating a register, you probably want to do something with it"]
-    pub fn allocate_register(&mut self) -> Register {
-        let ret = self.used_registers;
-        self.used_registers += 1;
-        Register(ret)
-    }
-
     /// Returns a builder for building a Block out of Operations
     pub fn build_block(&mut self) -> BlockBuilder {
         BlockBuilder {
             instructions: Vec::new(),
             builder: self,
+            used_registers: 0,
         }
     }
 }

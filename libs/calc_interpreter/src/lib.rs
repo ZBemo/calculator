@@ -1,10 +1,14 @@
 #![warn(clippy::pedantic, clippy::all, clippy::perf)]
 
+//! A basic interpreter for programs built by 'calc_ir'
+
 use calc_ir::{Number, Program};
 
 #[cfg(test)]
 mod test;
 
+/// interprets a function that's been registered to 'program' with the name 'function', passing in the arguments in 'arguments' and returns its result,
+/// as returned by Instruction::Ret
 pub fn interpret_function(
     function: &str,
     program: &Program,

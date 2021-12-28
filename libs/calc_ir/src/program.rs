@@ -1,37 +1,59 @@
-// TODO: fix Program's permissions, they're wack right now
-
-use crate::{BlockId, Instruction};
 use std::collections::HashMap;
 
-/// A "block" of code, useful for loops, if commands, etc
-pub type Block = Vec<Instruction>;
+use crate::Instruction;
 
-///TODO:  this probably doesn't belong in builder, move to lib.rs
-/// a collection of Blocks and functions, built by a [`super::Builder`]
-pub struct Program {
-    pub(super) blocks: Vec<Block>,
-    pub(super) functions: HashMap<String, BlockId>,
+// TODO: fix Program's permissions, they're wack right now
+// TODO: turn program into a trait, with an example struct provided by builder
+
+pub trait Program {
+    type BlockPointer;
+    type FunctionPointer;
+
+    /// Get a function's beginning block from its function pointer, most likely a string.
+    /// if a given function_id is not registered to a function, then returns None
+    fn get_function_entry(&self, function_id: &Self::FunctionPointer)
+        -> Option<Self::BlockPointer>;
+
+    /// get a list of [`Instruction`]s, where \[0\] is the first instruction in the block pointed to by block_id
+    fn get_ir(&self, block_id: Self::BlockPointer) -> &[Instruction];
 }
 
-impl Program {
-    #[must_use]
-    pub fn new() -> Self {
-        Self {
-            blocks: Vec::new(),
-            functions: HashMap::new(),
-        }
-    }
-    //TODO: this should be pub?
-    /// a function used by the Builder to register a function in the IR
-    pub(super) fn register_function(&mut self, block: BlockId, name: String) {
-        self.functions.insert(name, block);
+/// A newtype wrapper around usize to force consumers to call get_function_entry() first, ensuring that we only ever lookup an
+/// existing Block
+///
+/// this is only used in the implementation of [`BasicProgram`]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct BlockID(usize);
+
+/// A struct that implements [`Program`] in a simple way, the best way to acquire one of these is
+/// through a [`builder::Program`]
+pub struct BasicProgram {
+    function_list: HashMap<String, BlockID>,
+    // you could simplify this by having a Vec<Instruction> where a BlocKPointer is an offset to the first Instruction of the block
+    // but this would make optimization far more complex.. it might be a better idea to have a pass at the end of the optimization
+    // that "flattens" it from Vec<Vec<Instruction>> to Vec<Instruction> after the transformations have been made
+    blocks: Vec<Vec<Instruction>>,
+}
+
+impl Program for BasicProgram {
+    type FunctionPointer = String;
+    type BlockPointer = BlockID;
+
+    fn get_function_entry(
+        &self,
+        function_id: &Self::FunctionPointer,
+    ) -> Option<Self::BlockPointer> {
+        // Self::BlockPointer is trivially copiable
+        self.function_list.get(function_id).map(Clone::clone)
     }
 
-    pub fn lookup_function(&self, name: &str) -> Option<BlockId> {
-        self.functions.get(name).map(Clone::clone) // BlockIds are trivially cloneable so just clone it to remove the reference
-    }
-
-    pub fn get_block(&self, block: BlockId) -> &Block {
-        &self.blocks[block.0]
+    /// Safety: block_id is only attainable through this module, and every path in this module must ensure that all
+    /// publicly available BlockIDs are valid
+    ///
+    /// This should be guaranteed if you obtain your BasicProgram through a [`builder::Program`]
+    fn get_ir(&self, block_id: Self::BlockPointer) -> &[Instruction] {
+        // SAFETY: block_id is only attainable through this module, and every path in this module must ensure that all
+        // publicly available BlockIDs are valid
+        unsafe { self.blocks.get_unchecked(block_id.0) }
     }
 }

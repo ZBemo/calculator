@@ -21,7 +21,7 @@ pub enum BitWise {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Jump {
+pub enum BlockJump {
     Unconditional,
     Equal(Register, Register),
     NotEqual(Register, Register),

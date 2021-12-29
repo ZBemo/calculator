@@ -1,215 +1,190 @@
-//TODO: IMPORTANT:  move register allocation into BlockBuilder, registers shouldn't be constant thoughout a program!
+//! Structs to build a valid `zach_ir` program this is just one implementation of a builder,
+//! and is nowhere near the most efficient, in terms of code generation, but it is extremely simple and safe
+
 pub mod instructions;
 
-use crate::{Block, BlockId, Instruction, Program, Register};
+use std::collections::HashMap;
 
-/// A struct that allows you to build a [`Block`] inside of the context of a [`Builder`]
-#[allow(clippy::module_name_repetitions)] // this is the only name I can think of that doesn't conflict
-pub struct BlockBuilder<'a> {
-    /// The instructions within the block, to be executed in sequential order
-    instructions: Block,
-    /// The builder that the BlockBuilder is tied to
-    builder: &'a mut Builder,
+use crate::program::{BasicProgram, BlockID};
+use crate::Register;
 
-    used_registers: usize,
+/// a "real" instruction type as opposed to the generic type
+type Instruction = crate::Instruction<BlockID>;
+/// this is just easier to read in my opinion
+type IRBlock = Vec<Instruction>;
+
+pub struct Block<'a, 'b> {
+    instructions: Vec<Instruction>,
+    function: &'a mut Function<'b>,
 }
 
-impl<'a> BlockBuilder<'a> {
-    /// Allocates a register and returns a "pointer" to it, in reality it's just an add and return, as the interpreter is responsible for allocating actual
-    /// registers
-    #[must_use = "if you're allocating a register, you probably want to do something with it"]
-    fn allocate_register(&mut self) -> Register {
-        let ret = self.used_registers;
-        self.used_registers += 1;
-        Register(ret)
+impl<'a, 'b> Block<'a, 'b> {
+    #[must_use = "If you're creating a Block, it's useless not to use it and will be destroyed during optimization regardless"]
+    pub fn finalize(self) -> BlockID {
+        self.function.program.register_block(self.instructions)
     }
 
-    /// Finalize the Block and register it with the builder, returning an Identifier to that block
-    #[must_use]
-    pub fn finalize(self) -> BlockId {
-        self.builder.add_block(self.instructions)
+    /// Add a function call to the block's instructions, returning its output register
+    pub fn add_fn_call(&mut self, name: String, arguments: Vec<Register>) -> Register {
+        let ret_reg = self.function.allocate_register();
+        self.instructions.push(Instruction::Call {
+            name,
+            arguments,
+            out: ret_reg,
+        });
+        ret_reg
     }
 
-    /// Finalizes  self and registers the given blockId as a function with name `fn_name`
-    pub fn finalize_as_fn(self, fn_name: String) {
-        let id = self.builder.add_block(self.instructions);
-
-        self.builder.register_function(id, fn_name);
-    }
-
-    /// Loads the amount of arguments specified in argc into registers, and returns a vector of registers where the first argument
-    /// will be loaded into \[0\], the second into \[1\], etc
-    pub fn add_loadargs(&mut self, argc: usize) -> Vec<Register> {
-        let mut ret = Vec::new();
-        for _ in 0..argc {
-            ret.push(self.allocate_register());
+    /// Add a jump to another, already existing, Block
+    ///
+    /// In the future we might provide a way to jump to a block that is created in the future, but right now you need to build functions "from the bottom up".
+    pub fn add_cond_jump(&mut self, jump_type: instructions::BlockJump, to: BlockID) {
+        match jump_type {
+            instructions::BlockJump::Unconditional => self.instructions.push(Instruction::Jump(to)),
+            instructions::BlockJump::Equal(lhs, rhs) => {
+                self.instructions.push(Instruction::JEqual { to, lhs, rhs });
+            }
+            instructions::BlockJump::NotEqual(lhs, rhs) => self
+                .instructions
+                .push(Instruction::JNotEqual { to, lhs, rhs }),
+            instructions::BlockJump::NoneZero(r) => self
+                .instructions
+                .push(Instruction::JNonZero { check: r, to }),
+            instructions::BlockJump::Zero(r) => {
+                self.instructions.push(Instruction::JZero { check: r, to });
+            }
         }
-
-        self.instructions.push(Instruction::LoadArgs(ret.clone()));
-
-        ret
     }
 
-    pub fn add_immediate(&mut self, imm: super::Number) -> Register {
-        let immediate_reg = self.allocate_register();
-
-        self.instructions
-            .push(Instruction::LoadImmediate(imm, immediate_reg));
-
-        immediate_reg
-    }
-
-    pub fn add_ret(&mut self, reg: Register) {
-        self.instructions.push(Instruction::Ret(reg));
-    }
-
-    /// Adds an Arithmetic operation, and returns the register that it will store its result in
     pub fn add_arithmetic(
         &mut self,
         operation: instructions::Arithmetic,
         lhs: Register,
         rhs: Register,
     ) -> Register {
-        let out_reg = self.allocate_register();
+        let out = self.function.allocate_register();
+
         match operation {
             instructions::Arithmetic::Add => {
-                self.instructions.push(Instruction::Add {
-                    lhs,
-                    rhs,
-                    out: out_reg,
-                });
+                self.instructions.push(Instruction::Add { out, lhs, rhs });
             }
             instructions::Arithmetic::Subtract => {
-                self.instructions.push(Instruction::Subtract {
-                    lhs,
-                    rhs,
-                    out: out_reg,
-                });
+                self.instructions
+                    .push(Instruction::Subtract { out, lhs, rhs });
             }
             instructions::Arithmetic::Multiply => {
-                self.instructions.push(Instruction::Multiply {
-                    lhs,
-                    rhs,
-                    out: out_reg,
-                });
+                self.instructions
+                    .push(Instruction::Multiply { out, lhs, rhs });
             }
             instructions::Arithmetic::Divide => {
-                self.instructions.push(Instruction::Divide {
-                    lhs,
-                    rhs,
-                    out: out_reg,
-                });
+                self.instructions
+                    .push(Instruction::Divide { out, lhs, rhs });
             }
             instructions::Arithmetic::Mod => {
-                self.instructions.push(Instruction::Modulo {
-                    lhs,
-                    rhs,
-                    out: out_reg,
-                });
+                self.instructions
+                    .push(Instruction::Modulo { out, lhs, rhs });
             }
-        };
-        out_reg
+        }
+
+        out
     }
 
+    /// Add a bitwise instruction
     pub fn add_bitwise(
         &mut self,
         operation: instructions::BitWise,
         lhs: Register,
         rhs: Register,
     ) -> Register {
-        let out_reg = self.allocate_register();
+        let out = self.function.allocate_register();
+
         match operation {
-            instructions::BitWise::Or => self.instructions.push(Instruction::BitOr {
-                lhs,
-                rhs,
-                out: out_reg,
-            }),
-
-            instructions::BitWise::NotOr => self.instructions.push(Instruction::BitNotOr {
-                lhs,
-                rhs,
-                out: out_reg,
-            }),
-            instructions::BitWise::And => self.instructions.push(Instruction::BitAnd {
-                lhs,
-                rhs,
-                out: out_reg,
-            }),
-            instructions::BitWise::ShiftLeft => self.instructions.push(Instruction::ShiftL {
-                lhs,
-                rhs,
-                out: out_reg,
-            }),
-            instructions::BitWise::ShiftRight => self.instructions.push(Instruction::ShiftR {
-                lhs,
-                rhs,
-                out: out_reg,
-            }),
+            instructions::BitWise::Or => {
+                self.instructions.push(Instruction::BitOr { out, lhs, rhs });
+            }
+            instructions::BitWise::NotOr => {
+                self.instructions
+                    .push(Instruction::BitNotOr { out, lhs, rhs });
+            }
+            instructions::BitWise::And => {
+                self.instructions
+                    .push(Instruction::BitAnd { out, lhs, rhs });
+            }
+            instructions::BitWise::ShiftLeft => {
+                self.instructions
+                    .push(Instruction::ShiftL { out, lhs, rhs });
+            }
+            instructions::BitWise::ShiftRight => {
+                self.instructions
+                    .push(Instruction::ShiftR { out, lhs, rhs });
+            }
         }
 
-        out_reg
-    }
-
-    pub fn add_fn_call(&mut self, name: String, arguments: Vec<Register>) -> Register {
-        let out_reg = self.allocate_register();
-
-        self.instructions.push(Instruction::Call {
-            name,
-            arguments,
-            out: out_reg,
-        });
-
-        out_reg
+        out
     }
 }
 
-/// A struct to easily build a program, to add Blocks call [`Builder::build_block`] and use the returned [`BlockBuilder`]
-pub struct Builder {
-    program: Program,
+pub struct Function<'a> {
+    used_registers: usize,
+    pub(self) program: &'a mut Program,
+    name: String,
 }
 
-impl Builder {
-    /// recreate a builder from a program, allowing you to (only) add functions to it
-    #[must_use]
-    pub fn from_program(program: Program) -> Self {
-        Self { program }
-    }
-
-    pub fn register_function(&mut self, block: BlockId, name: String) {
-        self.program.register_function(block, name);
-    }
-
-    /// Finalize the program and get a collection of [`Block`]s back, which you can then pass to an interpreter
-    #[must_use]
-    pub fn finalize(self) -> Program {
-        self.program
-    }
-
-    pub fn new() -> Self {
+impl<'a> Function<'a> {
+    /// create a new function, with its own enclosing "scope"
+    pub(self) fn new(name: String, program: &'a mut Program) -> Self {
         Self {
-            program: Program::new(),
-        }
-    }
-
-    /// for use from [`BlockBuilder`]. adds the block to a list of blocks in the program and returns an identifier unique to that block
-    pub(super) fn add_block(&mut self, block: Block) -> BlockId {
-        let id = self.program.blocks.len(); // the index of the block that we're pushing to the program is the same as the amount of blocks in the program before we add it
-        self.program.blocks.push(block);
-        BlockId(id)
-    }
-
-    /// Returns a builder for building a Block out of Operations
-    pub fn build_block(&mut self) -> BlockBuilder {
-        BlockBuilder {
-            instructions: Vec::new(),
-            builder: self,
             used_registers: 0,
+            program,
+            name,
         }
+    }
+
+    pub(self) fn allocate_register(&mut self) -> Register {
+        let ret_reg = Register(self.used_registers);
+        self.used_registers += 1;
+        ret_reg
+    }
+
+    pub fn build_block(&mut self) -> Block<'a, '_> {
+        Block {
+            instructions: Vec::new(),
+            function: self,
+        }
+    }
+
+    pub fn finalize(self, entry_block: BlockID) {
+        self.program.register_function(self.name, entry_block);
     }
 }
 
-impl Default for Builder {
-    fn default() -> Self {
-        Self::new()
+/// Builds a whole program, probably the first thing you want to get your hands on to start
+/// building a [`BasicProgram`]
+pub struct Program {
+    blocks: Vec<IRBlock>,
+    functions: HashMap<String, BlockID>,
+}
+
+impl Program {
+    pub(self) fn register_block(&mut self, block: IRBlock) -> BlockID {
+        let block_id = self.blocks.len();
+        self.blocks.push(block);
+        BlockID(block_id)
+    }
+
+    pub(self) fn register_function(&mut self, name: String, entry: BlockID) {
+        self.functions.insert(name, entry);
+    }
+
+    #[must_use = "You shouldn't call finalize if you're not ready to use the created Program"]
+    pub fn finalize(self) -> crate::program::BasicProgram {
+        BasicProgram {
+            function_list: self.functions,
+            blocks: self.blocks,
+        }
+    }
+
+    pub fn make_fn(&mut self, function_name: String) -> Function {
+        Function::new(function_name, self)
     }
 }

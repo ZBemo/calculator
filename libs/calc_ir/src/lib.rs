@@ -3,8 +3,6 @@
 
 pub mod builder;
 pub mod program;
-pub use builder::Builder;
-pub use program::{Block, Program};
 
 /// The basic value of any variable in the calculator, a natively sized signed integer
 /// You could easily expand this to be an arbitrarily sized integer, or have the IR be able to represent mulitple types,
@@ -19,13 +17,9 @@ pub type Number = isize;
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Register(pub usize);
 
-/// represents a "pointer" to a [`Block`], which is stored in a [`Program`]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct BlockId(usize);
-
 /// An enum to represent a single Intermediate representation instruction
 #[derive(Debug, PartialEq, Eq)]
-pub enum Instruction {
+pub enum Instruction<BlockId: Eq> {
     LoadImmediate(Number, Register),
 
     // block navigation commands

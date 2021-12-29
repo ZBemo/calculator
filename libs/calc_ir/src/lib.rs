@@ -3,7 +3,7 @@
 
 pub mod builder;
 pub mod program;
-pub use program::{BlockID, Program};
+pub use program::Program;
 
 /// The basic value of any variable in the calculator, a natively sized signed integer
 /// You could easily expand this to be an arbitrarily sized integer, or have the IR be able to represent mulitple types,

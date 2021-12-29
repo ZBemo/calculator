@@ -5,7 +5,7 @@ pub mod instructions;
 
 use std::collections::HashMap;
 
-use crate::program::{BasicProgram, BlockID};
+use crate::program::implementations::*;
 use crate::Register;
 
 /// a "real" instruction type as opposed to the generic type
@@ -177,7 +177,7 @@ impl Program {
     }
 
     #[must_use = "You shouldn't call finalize if you're not ready to use the created Program"]
-    pub fn finalize(self) -> crate::program::BasicProgram {
+    pub fn finalize(self) -> BasicProgram {
         BasicProgram {
             function_list: self.functions,
             blocks: self.blocks,

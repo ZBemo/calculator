@@ -9,7 +9,7 @@ use crate::program::{BasicProgram, BlockID};
 use crate::Register;
 
 /// a "real" instruction type as opposed to the generic type
-type Instruction = crate::Instruction<BlockID>;
+type Instruction = crate::Instruction<BlockID, String>;
 /// this is just easier to read in my opinion
 type IRBlock = Vec<Instruction>;
 

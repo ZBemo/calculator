@@ -4,7 +4,7 @@
 
 use std::ops::Deref;
 
-use calc_ir::{BlockId, Number, Program};
+use calc_ir::{BlockID, Number, Program};
 
 type State = Vec<Number>;
 
@@ -13,15 +13,15 @@ mod test;
 
 /// interprets a block, returning Some(Number) if [`calc_ir::Instruction::Ret`] is called,
 /// otherwise returns None if end of block is reached with no return
-fn interpret_block(
-    block: BlockId,
-    program: &Program,
+fn interpret_block<ProgramT: Program>(
+    block: ProgramT::BlockPointer,
+    program: &ProgramT,
     state: &mut State,
     arguments: Option<&[Number]>,
 ) -> Option<Number> {
     // yeah this is bad code idcidc
     let mut registers = state;
-    let to_interpret = program.get_block(block);
+    let to_interpret = program.get_ir(block);
 
     for instruction in to_interpret {
         use calc_ir::Instruction;
@@ -36,6 +36,7 @@ fn interpret_block(
             } => {
                 // rust complains if we try to use * on the call change, probably because of wacky precidence
                 #[allow(clippy::explicit_deref_methods)]
+                //TODO: Genericize function calls lolololol with extra generic argument so instruction has signature Instruction<BlockPointer,FunctionPointer>
                 let result = interpret_function(
                     name,
                     program,
@@ -108,7 +109,7 @@ fn interpret_block(
                 registers.insert(out.0, registers[lhs.0] >> registers[rhs.0]);
             }
 
-            Instruction::Invalid => panic!("Invalid instruction in block {:?}", block),
+            Instruction::Invalid => panic!("Invalid instruction in block with pointer {:?}", block),
         };
     }
 
@@ -121,14 +122,14 @@ fn interpret_block(
 ///
 /// # Errors
 /// The function can fail in various ways, such as if it's told to interpret a function that doesn't exist
-pub fn interpret_function(
-    function: &str,
-    program: &Program,
+pub fn interpret_function<ProgramT: Program>(
+    function: ProgramT::FunctionPointer,
+    program: &ProgramT,
     arguments: &[Number],
 ) -> Result<Number, ()> {
     let mut registers: State = Vec::new();
     let to_interpret = {
-        match program.lookup_function(&*function) {
+        match program.get_function_entry(&function) {
             Some(function_block) => function_block,
             None => return Err(()),
         }

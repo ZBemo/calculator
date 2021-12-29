@@ -1,60 +1,70 @@
 #[allow(unused_imports)]
-use calc_ir::{
-    builder::instructions::{Arithmetic, BitWise, Jump},
-    Builder,
-};
+use calc_ir::{builder::instructions::*, builder::Program};
 
 // test that a basic function (adding 1 and 2) can be built and interpreted correctly
 #[test]
 fn basic_add() {
     const MAIN_FN_NAME: &str = "one_plus_two";
-    let mut builder = Builder::new();
+    let mut builder = Program::new();
 
-    let mut block_builder = builder.build_block();
+    let mut main_function = builder.make_fn(MAIN_FN_NAME.to_string());
 
-    let one = block_builder.add_immediate(1);
-    let two = block_builder.add_immediate(2);
-    let to_ret = block_builder.add_arithmetic(Arithmetic::Add, one, two);
-    block_builder.add_ret(to_ret);
+    let mut main_block = main_function.build_block();
+    let one = main_block.add_immediate(1);
+    let two = main_block.add_immediate(2);
 
-    let block_id = block_builder.finalize();
+    let one_plus_two = main_block.add_arithmetic(Arithmetic::Add, one, two);
+    // should be three
+    main_block.add_ret(one_plus_two);
 
-    builder.register_function(block_id, MAIN_FN_NAME.to_string());
+    //TOOD: there's gotta be a better way to do this man
+    let (id, main_function) = main_block.finalize();
+
+    main_function.finalize(id);
 
     let program = builder.finalize();
+    let result = crate::interpret_function(&MAIN_FN_NAME.to_string(), &program, &[]);
 
-    let result = crate::interpret_function(MAIN_FN_NAME, &program, &[]);
-
-    assert_eq!(result, Ok(3));
+    assert_eq!(result, Ok(3))
 }
 
 /// make the same  function as above and then call it from another function
 #[test]
 fn two_functions() {
-    const CALED_FN_NAME: &str = "one_plus_two";
-    let mut builder = Builder::new();
+    const FIRST_FUNCTION_NAME: &str = "one_plus_two";
+    const MAIN_FUNCTION_NAME: &str = "one_plus_two_minus_two";
 
-    let mut block_builder = builder.build_block();
+    let mut builder = Program::new();
 
-    let one = block_builder.add_immediate(1);
-    let two = block_builder.add_immediate(2);
-    let to_ret = block_builder.add_arithmetic(Arithmetic::Add, one, two);
-    block_builder.add_ret(to_ret);
+    let mut called_function = builder.make_fn(FIRST_FUNCTION_NAME.to_string());
 
-    let block_id = block_builder.finalize();
+    let mut entry_block = called_function.build_block();
+    let one = entry_block.add_immediate(1);
+    let two = entry_block.add_immediate(2);
 
-    builder.register_function(block_id, CALED_FN_NAME.to_string());
+    let one_plus_two = entry_block.add_arithmetic(Arithmetic::Add, one, two);
+    // should be three
+    entry_block.add_ret(one_plus_two);
 
-    let mut snd_block_builder = builder.build_block();
+    //TOOD: there's gotta be a better way to do this man
+    let (id, called_function) = entry_block.finalize();
 
-    // load the one argument to the function into a register
-    let args = snd_block_builder.add_loadargs(1);
-    // load 1 into a register
-    let one = snd_block_builder.add_immediate(1);
+    let builder = called_function.finalize(id);
 
-    let arg_minus_one = snd_block_builder.add_arithmetic(Arithmetic::Subtract, args[0], one);
+    let mut main_function = builder.make_fn(MAIN_FUNCTION_NAME.to_string());
 
-    snd_block_builder.add_ret(arg_minus_one);
+    let mut entry_block = main_function.build_block();
+    let two = entry_block.add_immediate(2);
+    let call = entry_block.add_fn_call(FIRST_FUNCTION_NAME.clone().to_string(), Vec::new());
+    let ret_minus_two = entry_block.add_arithmetic(Arithmetic::Subtract, call, two);
+    entry_block.add_ret(ret_minus_two);
 
-    //TODO: call that and  subtract one from its return, should evaluate to 2
+    let (entry_block_id, main_function) = entry_block.finalize();
+    let builder = main_function.finalize(entry_block_id);
+
+    let program = builder.finalize();
+
+    let result = crate::interpret_function(&MAIN_FUNCTION_NAME.to_string(), &program, &[]);
+
+    assert_eq!(result, Ok(1))
 }

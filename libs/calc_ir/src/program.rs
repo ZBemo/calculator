@@ -14,14 +14,14 @@ pub trait Program {
     /// It is necesarry that when block_pointer1 == block_pointer2, then get_ir(block_pointer1) == get_ir(block_pointer2), and thus consumers of a `Program`
     /// are allowed to assume that when two `BlockPointer`s compare equal, the blocks that they point to have the same content, although they may have
     /// different locations in memory.
-    type BlockPointer: Eq;
+    type BlockPointer: Eq + Clone;
 
     /// The type used to identify a function, this can be anything as long as it can be used to look up a BlockPointer to
     /// the correct function. It must also implement Eq for the consumer's benefit.
     ///
-    /// It follows the same rules as [`BlockPointer`], where if function_pointer1 == function_pointer2,
-    /// then get_function_entry(function_pointer1) == get_function_entry(function_pointer2).
-    type FunctionPointer: Eq;
+    /// It follows the same rules as [`BlockPointer`], where if `function_pointer1 == function_pointer2`,
+    /// then `get_function_entry(function_pointer1) == get_function_entry(function_pointer2)`.
+    type FunctionPointer: Eq + Clone;
 
     /// Get a function's beginning block from its function pointer.
     /// If a given `function_id` is not registered to a function, then return None

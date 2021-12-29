@@ -19,8 +19,8 @@ pub type Number = isize;
 pub struct Register(pub usize);
 
 /// An enum to represent a single Intermediate representation instruction
-#[derive(Debug, PartialEq, Eq)]
-pub enum Instruction<BlockId: Eq, FunctionId: Eq> {
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Instruction<BlockId: Eq + Clone, FunctionId: Eq + Clone> {
     LoadImmediate(Number, Register),
 
     // block navigation commands

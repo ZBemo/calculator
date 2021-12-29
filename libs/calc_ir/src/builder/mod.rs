@@ -6,7 +6,7 @@ pub mod instructions;
 use std::collections::HashMap;
 
 use crate::program::implementations::*;
-use crate::Register;
+use crate::{Number, Register};
 
 /// a "real" instruction type as opposed to the generic type
 type Instruction = crate::Instruction<BlockID, String>;
@@ -20,8 +20,20 @@ pub struct Block<'a, 'b> {
 
 impl<'a, 'b> Block<'a, 'b> {
     #[must_use = "If you're creating a Block, it's useless not to use it and will be destroyed during optimization regardless"]
-    pub fn finalize(self) -> BlockID {
-        self.function.program.register_block(self.instructions)
+    pub fn finalize(self) -> (BlockID, &'a mut Function<'b>) {
+        let id = self.function.program.register_block(self.instructions);
+        (id, self.function)
+    }
+
+    pub fn add_immediate(&mut self, immediate: Number) -> Register {
+        let out = self.function.allocate_register();
+        self.instructions
+            .push(Instruction::LoadImmediate(immediate, out));
+        out
+    }
+
+    pub fn add_ret(&mut self, reg: Register) {
+        self.instructions.push(Instruction::Ret(reg));
     }
 
     /// Add a function call to the block's instructions, returning its output register
@@ -146,15 +158,17 @@ impl<'a> Function<'a> {
         ret_reg
     }
 
-    pub fn build_block(&mut self) -> Block<'a, '_> {
+    pub fn build_block<'b>(&'b mut self) -> Block<'a, 'b> {
         Block {
             instructions: Vec::new(),
             function: self,
         }
     }
 
-    pub fn finalize(self, entry_block: BlockID) {
-        self.program.register_function(self.name, entry_block);
+    /// Finalize the function with the entry `entry_block`
+    pub fn finalize(&mut self, entry_block: BlockID) -> &mut Program {
+        self.program.register_function(&self.name, entry_block);
+        self.program
     }
 }
 
@@ -172,15 +186,22 @@ impl Program {
         BlockID(block_id)
     }
 
-    pub(self) fn register_function(&mut self, name: String, entry: BlockID) {
-        self.functions.insert(name, entry);
+    pub(self) fn register_function(&mut self, name: &str, entry: BlockID) {
+        self.functions.insert(name.to_string(), entry);
+    }
+
+    pub fn new() -> Self {
+        Self {
+            blocks: Vec::new(),
+            functions: HashMap::new(),
+        }
     }
 
     #[must_use = "You shouldn't call finalize if you're not ready to use the created Program"]
-    pub fn finalize(self) -> BasicProgram {
+    pub fn finalize(&mut self) -> BasicProgram {
         BasicProgram {
-            function_list: self.functions,
-            blocks: self.blocks,
+            function_list: self.functions.clone(),
+            blocks: self.blocks.clone(),
         }
     }
 

@@ -3,6 +3,7 @@
 
 pub mod builder;
 pub mod program;
+pub use program::{BlockID, Program};
 
 /// The basic value of any variable in the calculator, a natively sized signed integer
 /// You could easily expand this to be an arbitrarily sized integer, or have the IR be able to represent mulitple types,
@@ -19,13 +20,13 @@ pub struct Register(pub usize);
 
 /// An enum to represent a single Intermediate representation instruction
 #[derive(Debug, PartialEq, Eq)]
-pub enum Instruction<BlockId: Eq> {
+pub enum Instruction<BlockId: Eq, FunctionId: Eq> {
     LoadImmediate(Number, Register),
 
     // block navigation commands
     // call a block with the provided arguments
     Call {
-        name: String,
+        function_id: FunctionId,
         arguments: Vec<Register>,
         // the register to store the return value in
         // this is an inefficient return scheme, architect a better one later?

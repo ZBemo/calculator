@@ -28,7 +28,7 @@ impl<'a, 'b> Block<'a, 'b> {
     pub fn add_fn_call(&mut self, name: String, arguments: Vec<Register>) -> Register {
         let ret_reg = self.function.allocate_register();
         self.instructions.push(Instruction::Call {
-            name,
+            function_id: name,
             arguments,
             out: ret_reg,
         });

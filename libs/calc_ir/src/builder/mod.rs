@@ -1,5 +1,5 @@
-//! Structs to build a valid `zach_ir` program this is just one implementation of a builder,
-//! and is nowhere near the most efficient, in terms of code generation, but it is extremely simple and safe
+//! Structs to build a valid `zach_ir` program. This is just one implementation of a builder,
+//! and is nowhere near the most efficient in terms of code generation, but it is extremely simple and safe.
 
 pub mod instructions;
 
@@ -173,7 +173,7 @@ impl<'a> Function<'a> {
 }
 
 /// Builds a whole program, probably the first thing you want to get your hands on to start
-/// building a [`BasicProgram`]
+/// building a [`crate::program::implementations::BasicProgram`]
 pub struct Program {
     blocks: Vec<IRBlock>,
     functions: HashMap<String, BlockID>,

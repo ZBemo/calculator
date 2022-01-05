@@ -19,3 +19,11 @@ dependencies = [
 [[package]]
 name = "calc_ir"
 version = "0.1.0"
+
+[[package]]
+name = "calc_optimizer"
+version = "0.1.0"
+dependencies = [
+ "calc_interpreter",
+ "calc_ir",
+]

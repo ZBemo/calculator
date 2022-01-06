@@ -13,3 +13,5 @@ I expect the optimization to be the major focus of the project as I learn how op
 
 After the project is more fleshed out I might write more comprehensive documentation, and possibly
 blogs about how the project works.
+
+I'm currently working on a proper "semantic" definition of how programs should be formed in order to be properly consumed/transformed/interpreted by the crates in this repository

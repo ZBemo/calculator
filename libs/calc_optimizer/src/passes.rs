@@ -2,10 +2,9 @@
 //!
 //! To get started making a new pass, look at [`OptimizationPass`]
 
-use crate::structs::Graph;
+use crate::Graph;
 use calc_ir::Program;
-use std::fmt::Debug;
-use std::hash::Hash;
+use std::{fmt::Debug, hash::Hash};
 
 /// The trait that must be implemented by a struct in order to run an optimization pass, there are example implementations in this module.
 pub trait OptimizationPass<FunctionPointerT: Eq + std::fmt::Debug + Clone + Hash> {

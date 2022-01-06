@@ -11,7 +11,7 @@ pub struct Graph<FunctionPointerT: Eq + std::fmt::Debug + Clone + Hash> {
 
 impl<FunctionPointerT: Eq + Clone + Hash + std::fmt::Debug> Graph<FunctionPointerT> {
     fn from_program<
-        BlockPointerT: Eq + Clone,
+        BlockPointerT: Eq + std::fmt::Debug + Into<usize>,
         ProgramT: Program<BlockPointer = BlockPointerT, FunctionPointer = FunctionPointerT>,
     >(
         from: ProgramT,

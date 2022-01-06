@@ -28,6 +28,10 @@ impl<FunctionPointerT: Eq + std::fmt::Debug + Clone + Hash> Program
     ) -> &[calc_ir::Instruction<Self::BlockPointer, Self::FunctionPointer>] {
         &self.all_instructions[*block_id..self.all_instructions.len()]
     }
+
+    fn get_all_functions<'a>(&'a self) -> Vec<(&'a Self::FunctionPointer, &'a Self::BlockPointer)> {
+        self.function_pointer_map.iter().collect()
+    }
 }
 
 /*

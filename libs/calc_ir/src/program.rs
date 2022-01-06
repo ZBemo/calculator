@@ -38,6 +38,16 @@ pub trait Program {
         &self,
         block_id: &Self::BlockPointer,
     ) -> &[crate::Instruction<Self::BlockPointer, Self::FunctionPointer>];
+
+    /// This should return an iterator of any functions necesarry in the final Progam
+    ///
+    /// This is mainly implemented for optimization
+    ///
+    /// TODO: when GAT stabilized use this for [`get_all_functions`]:
+    ///
+    /// type FunctionListIter<'a>: Iterator<Item = (&'a Self::FunctionPointer, &'a Self::BlockPointer)>;
+    /// fn get_all_functions(&'a self) -> Self::FucntionListIter<'a>;
+    fn get_all_functions<'a>(&'a self) -> Vec<(&'a Self::FunctionPointer, &'a Self::BlockPointer)>;
 }
 
 /// A module with structures necesarry for the implementation of [`crate::builder::Program`]
@@ -85,6 +95,10 @@ pub mod implementations {
             // SAFETY: block_id is only attainable through this module, and every path in this module must ensure that all
             // publicly available BlockIDs are valid
             unsafe { self.blocks.get_unchecked(block_id.0) }
+        }
+
+        fn get_all_functions(&self) -> Vec<(&Self::FunctionPointer, &Self::BlockPointer)> {
+            self.function_list.iter().collect()
         }
     }
 }
